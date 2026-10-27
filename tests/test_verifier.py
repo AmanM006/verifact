@@ -131,12 +131,12 @@ def test_counterfactual_repair_authoritative_invariance():
     
     wire_repair = next(r for r in repairs if r["variable"] == "ledger.dispatched")
     assert wire_repair["counterfactual_value"] == 42000.0
-    assert wire_repair["action_type"] == "RECOVER_OVERPAYMENT"
+    assert "HUMAN_REVIEW" in wire_repair["action_type"]
     assert "clawback" in wire_repair["repair_recommendation"].lower()
 
     iban_repair = next(r for r in repairs if r["variable"] == "ledger.iban")
     assert iban_repair["counterfactual_value"] == "GB8821"
-    assert iban_repair["action_type"] == "FREEZE_AND_REROUTE_PAYMENT"
+    assert "HUMAN_REVIEW" in iban_repair["action_type"]
 
 
 def test_counterfactual_sla_and_inventory_remediation():
@@ -153,7 +153,7 @@ def test_counterfactual_sla_and_inventory_remediation():
     sla_repairs = counterfactual_engine.compute_repair(sla_claims, ["CLM-002", "CLM-004", "CLM-006"])
     disc_repair = next(r for r in sla_repairs if r["variable"] == "disclosure.filed")
     assert disc_repair["counterfactual_value"] is True
-    assert disc_repair["action_type"] == "FILE_INCIDENT_DISCLOSURE"
+    assert "HUMAN_REVIEW" in disc_repair["action_type"]
 
     # Inventory scenario
     inv_claims = [
@@ -164,5 +164,14 @@ def test_counterfactual_sla_and_inventory_remediation():
     inv_repairs = counterfactual_engine.compute_repair(inv_claims, ["CLM-003", "CLM-005", "CLM-006"])
     loss_repair = next(r for r in inv_repairs if r["variable"] == "claimed_loss")
     assert loss_repair["counterfactual_value"] == 13800.0
-    assert loss_repair["action_type"] == "AMEND_INSURANCE_CLAIM"
+    assert "HUMAN_REVIEW" in loss_repair["action_type"]
+
+
+def test_full_pipeline_unfamiliar_entity():
+    """Verify complete end-to-end pipeline execution on unfamiliar enterprise records."""
+    from backend.eval.full_pipeline_eval import run_unfamiliar_source_investigation
+    res = asyncio.run(run_unfamiliar_source_investigation())
+    assert res["status"] == "SUCCESS"
+    assert res["smt_formal_proof"]["verdict"] == "INCONSISTENT"
+    assert len(res["counterfactual_remediation_options"]) == 2
 

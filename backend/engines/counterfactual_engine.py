@@ -8,9 +8,9 @@ Auditing & Forensic Governance Rule:
    measured physical telemetry) are strictly IMMUTABLE.
    The solver NEVER proposes retroactively legitimizing fraud (e.g. increasing a PO to match a rogue wire).
 2. Operational Execution Distinction:
-   Distinguishes between a pure mathematical repair (Z3 model adjustment) and an authorized
-   operational execution remedy. (e.g. A committed bank transfer cannot simply be edited in a DB;
-   it requires a formal SWIFT gpi stop-recall or clawback protocol).
+   Distinguishes between a pure mathematical repair (Z3 model adjustment) and human-reviewed
+   investigative options. Recommendations are presented as qualified remediation options
+   subject to treasury, legal, and jurisdictional determination, never unconditional commands.
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ class CounterfactualRepairEngine:
     """
     Computes minimal constraint relaxations / counterfactual corrections
     using MaxSMT so a human auditor can see what actionable interventions restore consistency,
-    strictly distinguishing mathematical satisfaction from operational execution remedies.
+    strictly distinguishing mathematical satisfaction from qualified human-reviewed remediation options.
     """
 
     def compute_repair(
@@ -59,7 +59,7 @@ class CounterfactualRepairEngine:
         Given the claims and the minimal contradictory core, determines:
         1. Which operational claim(s) need adjustment
         2. Proposed corrected values (MaxSMT model)
-        3. Operational status and execution protocol (SWIFT recall, insurance amendment, disclosure)
+        3. Operational status and qualified investigation protocols
         """
         if not claims or not minimal_core_ids:
             return []
@@ -138,11 +138,11 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_num,
                             "mathematical_repair": f"ledger.dispatched := {m_val_num} (matches PO ceiling)",
                             "operational_status": "DISBURSEMENT_COMMITTED",
-                            "action_type": "RECOVER_OVERPAYMENT",
+                            "action_type": "HUMAN_REVIEW_RECOVERY_OPTION",
                             "execution_protocol": (
-                                "Payment is committed at clearinghouse. Software edit cannot retrieve funds. "
-                                f"Initiate formal SWIFT gpi stop-recall (MT192/camt.056) for ${delta:,.2f} overpayment, "
-                                "or file emergency executive CFO supplemental PO ratification to board."
+                                "Human Review Required: Verify settlement status with Treasury. "
+                                f"If wire is settled, evaluate formal inter-bank recall protocols (e.g. SWIFT gpi MT192/camt.056) "
+                                f"for the ${delta:,.2f} overage with banking counsel, or submit formal supplemental PO amendment."
                             ),
                             "repair_recommendation": (
                                 f"Initiate clawback / intercept of ${delta:,.2f} overpayment to align disbursed "
@@ -158,11 +158,11 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_num,
                             "mathematical_repair": f"claimed_loss := {m_val_num} (matches physically measured delta)",
                             "operational_status": "CLAIM_SUBMITTED_TO_CARRIER",
-                            "action_type": "AMEND_INSURANCE_CLAIM",
+                            "action_type": "HUMAN_REVIEW_CLAIM_AMENDMENT",
                             "execution_protocol": (
-                                "Claim INS-1188 is already submitted. Operational remedy requires filing formal "
-                                f"Proof of Loss amendment with cargo underwriter citing port customs bill of lading "
-                                f"deficit ({int(m_val_num):,} units), subject to policy deductible and carrier adjustor audit."
+                                "Human Review Required: Review insurance policy coverage terms, deductibles, and "
+                                f"carrier claim amendment procedures with risk management. If supported, prepare supplemental "
+                                f"Proof of Loss for {int(m_val_num):,} units citing verified customs shortfall tallies."
                             ),
                             "repair_recommendation": (
                                 f"Amend insurance claim from {int(c.value):,} units to {int(m_val_num):,} units "
@@ -177,10 +177,10 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_num,
                             "mathematical_repair": f"obtained_approvals := {int(m_val_num)} (meets policy threshold)",
                             "operational_status": "POLICY_GATE_BYPASS",
-                            "action_type": "SUBMIT_GOVERNANCE_APPROVAL",
+                            "action_type": "GOVERNANCE_REVIEW_REQUIRED",
                             "execution_protocol": (
-                                "Commit was deployed with single sign-off. Post-incident governance requires "
-                                "retrospective peer review sign-off and CI/CD policy-as-code enforcement (2 approvals)."
+                                "Human Review Required: Single approval deployment bypassed runbook gates. "
+                                "Conduct retrospective architectural post-mortem and enforce CI/CD branch protection rules."
                             ),
                             "repair_recommendation": (
                                 f"Submit required senior engineering and SRE sign-offs "
@@ -196,7 +196,7 @@ class CounterfactualRepairEngine:
                             "mathematical_repair": f"{c.var} := {m_val_num}",
                             "operational_status": "AUDIT_RECONCILIATION_REQUIRED",
                             "action_type": "ADJUST_OPERATIONAL_METRIC",
-                            "execution_protocol": f"Adjust operational tracking ledger for {c.var}.",
+                            "execution_protocol": f"Human Review Required: Reconcile operational tracking ledger for {c.var}.",
                             "repair_recommendation": (
                                 f"Adjust {c.var} from {c.value} to {m_val_num} to restore domain consistency."
                             ),
@@ -214,10 +214,10 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_bool,
                             "mathematical_repair": "disclosure.filed := true",
                             "operational_status": "OUTAGE_CLOSED_UNDISCLOSED",
-                            "action_type": "FILE_INCIDENT_DISCLOSURE",
+                            "action_type": "HUMAN_REVIEW_DISCLOSURE",
                             "execution_protocol": (
-                                "23-minute SLA outage is committed in telemetry. Operational remedy requires Legal and "
-                                "Customer Success to file formal contractual breach notice and issue $5,750 service credit ledger entry."
+                                "Human Review Required: Review customer contract SLA terms (Clause 4.2) and post-incident "
+                                "disclosure obligations with legal counsel before issuing official notice and service credits ($5,750)."
                             ),
                             "repair_recommendation": (
                                 "File mandatory customer SLA breach disclosure and initiate service credit ledger entry."
@@ -231,10 +231,10 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_bool,
                             "mathematical_repair": "email.exists := true",
                             "operational_status": "ARCHIVE_SEARCH_NEGATIVE",
-                            "action_type": "PROVIDE_MISSING_AUTHORIZATION",
+                            "action_type": "HUMAN_REVIEW_AUTHORIZATION_SEARCH",
                             "execution_protocol": (
-                                "Thread #4471 is missing from primary archive. Operational remedy requires cold-storage "
-                                "tape restore or executive signing of supplemental out-of-band authorization affidavit."
+                                "Human Review Required: Primary email archive search for thread #4471 was negative. "
+                                "Request cold-storage backup search or seek written executive verification affidavit."
                             ),
                             "repair_recommendation": (
                                 "Provide verified archive email thread validating retroactive executive approval."
@@ -266,11 +266,11 @@ class CounterfactualRepairEngine:
                             "counterfactual_value": m_val_str,
                             "mathematical_repair": f"ledger.iban := '{m_val_str}'",
                             "operational_status": "TRANSFERRED_TO_UNAUTHORIZED_ACCOUNT",
-                            "action_type": "FREEZE_AND_REROUTE_PAYMENT",
+                            "action_type": "HUMAN_REVIEW_PAYEE_RECONCILIATION",
                             "execution_protocol": (
-                                f"Payment went to rogue account '{c.value}'. Operational remedy requires immediately contacting "
-                                f"receiving bank AML compliance to freeze rogue beneficiary '{c.value}', filing a SAR report, "
-                                f"and re-initiating wire through verified vendor account '{m_val_str}'."
+                                f"Human Review Required: Payment was directed to unauthorized account '{c.value}'. "
+                                "Contact paying institution treasury and receiving bank compliance to investigate beneficiary status. "
+                                "Evaluate jurisdictional reporting obligations (e.g. SAR/STR) and confirm authorized vendor coordinates."
                             ),
                             "repair_recommendation": (
                                 f"Freeze payment to rogue recipient account '{c.value}' and "

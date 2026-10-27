@@ -4,7 +4,7 @@
 [![Formal Prover](https://img.shields.io/badge/Verification-Z3_SMT_Deletion--Minimized_MUS-purple.svg?style=for-the-badge)](https://github.com/Z3Prover/z3)
 [![MaxSMT Repair](https://img.shields.io/badge/Repair_Engine-Z3_Optimize_MaxSMT-008080.svg?style=for-the-badge)](https://github.com/Z3Prover/z3)
 [![In-Kind Target](https://img.shields.io/badge/NVIDIA_Prize-Best_Use_of_NVIDIA_Nemotron-76B900.svg?style=for-the-badge&logo=nvidia)](https://hackathon.genai.works/event/open-agent-hackathon-2026)
-[![Tests Passing](https://img.shields.io/badge/Tests-8_Passed-brightgreen.svg?style=for-the-badge)](./tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-9_Passed-brightgreen.svg?style=for-the-badge)](./tests)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](./LICENSE)
 
 > **"An LLM that generates narrative text does not explain why. An agent that extracts typed proposition variables across fragmented silos, calculates true deletion-minimized UNSAT cores, produces offline-reproducible SMT-LIB2 proofs, and derives prospective counterfactual repairs under strict governance rules does."**
@@ -14,23 +14,25 @@ Built for the **Open Agent Hackathon 2026** (Track 02: *The Agent That Can Expla
 2. Deconstructs unstructured evidence into typed proposition variables using **NVIDIA Nemotron 3.5 Bolt**.
 3. Employs the **Z3 SMT Theorem Prover** to mathematically calculate a **True Deletion-Minimized UNSAT Core** (the minimal irreducible subset of contradictory enterprise assertions).
 4. Generates a **Self-Contained SMT-LIB2 Proof Certificate** downloadable for independent offline verification in standalone `z3` and `cvc5`.
-5. Uses **MaxSMT (Z3 Optimize)** to compute **Counterfactual Repairs** (*"What would resolve this?"*) while strictly respecting governance boundaries—authoritative purchase orders and contracts are immutable historical facts, directing all adjustments to prospective recovery actions.
+5. Uses **MaxSMT (Z3 Optimize)** to compute **Counterfactual Repairs** (*"What would resolve this?"*) while strictly respecting governance boundaries—authoritative purchase orders and contracts are immutable historical facts, presenting qualified operational remediation options subject to human review.
 6. Retains and invalidates refuted evidence in **Meterless H-MEM** while scheduling continuous watchers via **Meterless Nightshift**.
 
 ---
 
-## 🌐 Live Public Endpoints
+## 🌐 Live Public Cloudflare Endpoints (Zero Interstitial Warning)
 
-The system is deployed and accessible over public HTTPS endpoints for immediate testing:
-- **Interactive UI Dashboard:** [https://six-spoons-care.loca.lt](https://six-spoons-care.loca.lt) *(Bypass header: `bypass-tunnel-reminder: 1` or click "Click to Continue")*
-- **Live REST API Base:** [https://clean-pets-hide.loca.lt](https://clean-pets-hide.loca.lt)
-- **API Health Check:** `curl -s -H "bypass-tunnel-reminder: 1" https://clean-pets-hide.loca.lt/`
-- **Execute Live Investigation:**
+The system is deployed over official **Cloudflare Tunnels** (`trycloudflare.com`) on Cloudflare's global edge network—accessible from any browser without interstitial screens or bypass headers:
+- **Interactive UI Dashboard:** [https://ripe-defensive-beginning-hospitals.trycloudflare.com](https://ripe-defensive-beginning-hospitals.trycloudflare.com)
+- **Live REST API Base:** [https://cups-arrangements-processing-hoped.trycloudflare.com](https://cups-arrangements-processing-hoped.trycloudflare.com)
+- **API Health Check:** `curl -s https://cups-arrangements-processing-hoped.trycloudflare.com/`
+- **Execute Live Investigation Over Cloudflare:**
   ```bash
-  curl -s -X POST -H "Content-Type: application/json" -H "bypass-tunnel-reminder: 1" \
+  curl -s -X POST -H "Content-Type: application/json" \
     -d '{"scenario_id": "procurement_fraud"}' \
-    https://clean-pets-hide.loca.lt/investigate
+    https://cups-arrangements-processing-hoped.trycloudflare.com/investigate
   ```
+
+*(Secondary localtunnel fallbacks: Dashboard: `https://six-spoons-care.loca.lt`, API: `https://clean-pets-hide.loca.lt` with header `bypass-tunnel-reminder: 1`)*
 
 ---
 
@@ -62,13 +64,12 @@ VeriFact distinguishes **Authoritative Invariants** from **Operational Knobs**:
   - `disclosure.filed` $\to$ File mandatory incident breach disclosure and process service credits.
   - `claimed_loss` $\to$ Amend insurance claim to align with verified physical deficit.
 
-### 3. Mathematical Repair vs Real-World Executable Remedy
-VeriFact's counterfactual engine explicitly differentiates mathematical constraint relaxation from operational execution:
-- **Mathematical Repair:** The formal value change in the Z3 model (e.g. `ledger.dispatched := $42,000`).
-- **Real-World Execution Protocol:** A committed bank transfer cannot simply be edited in a database. VeriFact attaches the real-world banking/legal protocol:
-  - *Overpayment Remedy:* Initiating formal SWIFT gpi stop-recall (MT192/camt.056) for the \$52,750 overpayment to the clearinghouse.
-  - *IBAN Swap Remedy:* Contacting receiving bank AML compliance to freeze the unauthorized beneficiary account and filing a Suspicious Activity Report (SAR).
-  - *Insurance Shortfall Remedy:* Submitting a formal Proof of Loss amendment to cargo underwriters citing port customs bill of lading tallies.
+### 3. Qualified Human-Reviewed Investigation & Remediation Options
+VeriFact does not emit categorical legal commands; all counterfactual outputs are qualified as **Human-Reviewed Investigation Options** subject to institutional, jurisdictional, and contractual verification:
+- *Overpayment Option:* Verify settlement status with Treasury. If wire is cleared, evaluate formal inter-bank recall protocols (e.g. SWIFT gpi MT192/camt.056) or submit formal supplemental PO amendment.
+- *IBAN Mismatch Option:* Contact paying institution treasury and receiving bank compliance to investigate beneficiary status. Evaluate jurisdictional reporting obligations (e.g. SAR/STR) and confirm authorized vendor coordinates.
+- *SLA Breach Option:* Review customer contract SLA terms (Clause 4.2) and post-incident disclosure obligations with legal counsel before issuing official notice and service credits ($5,750).
+- *Insurance Shortfall Option:* Verify insurance policy limits, deductible thresholds, and carrier claim amendment guidelines with risk management before submitting supplemental loss documentation.
 
 ### 4. Self-Contained Offline SMT-LIB2 Proof Certificates
 Every detected contradiction outputs a standalone `.smt2` document asserting claims directly with `:named` tracking labels:
@@ -126,13 +127,23 @@ python -m backend.eval.blind_eval
 
 ---
 
+## 🔬 Full-Pipeline Evaluation on Unfamiliar Entity Records
+
+To evaluate end-to-end performance on records outside the scenario dataset, VeriFact includes a dedicated multi-silo ingestion harness (`backend/eval/full_pipeline_eval.py`). It ingests brand-new records for **Helios Solar Tech** spanning ERP SQL, banking wire dispatches, and email archive search queries:
+```bash
+python -m backend.eval.full_pipeline_eval
+```
+*Output: In 10.63ms, executes raw text parsing, verbatim grounding checks, H-MEM persistence, Z3 MUS core extraction (`CLM-001`, `CLM-002`), and MaxSMT recovery recommendations with human-review protocols.*
+
+---
+
 ## 🚀 Preloaded Real-World Scenarios
 
 | Scenario | Cross-Silo Data Sources | Z3 SMT Formal Inconsistency | Minimal UNSAT Core | Counterfactual Governance Repair & Operational Protocol |
 |---|---|---|---|---|
-| **01. Silent Procurement Fraud** | ERP Table `row 1001`, SQL Wire Ledger `row 2047`, Slack Audit, SEC EDGAR | Dispatched (\$94,750) > PO limit (\$42,000) requires archive email; archive confirms email missing; payment sent to unapproved IBAN ...3304. | `CLM-001`, `CLM-002` | **Remedy:** Clawback \$52,750 overpayment to restore authorized PO cap (\$42,000); freeze payment to ...3304 and re-route to approved IBAN ...8821.<br>**Protocol:** Issue SWIFT gpi stop-recall (MT192) and file FinCEN SAR on rogue IBAN. |
-| **02. Cloud SLA Breach Coverup** | Grafana Telemetry, Prometheus p99, Git Commits, SLA Contract | Telemetry p99 (8,200ms) for 23min strictly breaches contract clause 4.2 (limit 500ms for >2min); triggers mandatory disclosure; disclosure log is absent. | `CLM-002`, `CLM-004`, `CLM-006` | **Remedy:** File mandatory customer SLA incident breach disclosure.<br>**Protocol:** Issue \$5,750 service credit ledger entry to customer within 72-hour window. |
-| **03. Supply Chain Ghost Inventory** | Shipping Manifest, Customs Clearance, Warehouse Receipt, Insurance | Conservation of physical mass violated: Manifest shows 45,000 shipped, warehouse received 31,200 (deficit 13,800), but insurance filing claims only 2,100 units. | `CLM-003`, `CLM-005`, `CLM-006` | **Remedy:** Amend insurance claim from 2,100 units to 13,800 units.<br>**Protocol:** File supplemental Proof of Loss with marine underwriter with CBP customs entry documentation. |
+| **01. Silent Procurement Fraud** | ERP Table `row 1001`, SQL Wire Ledger `row 2047`, Slack Audit, SEC EDGAR | Dispatched (\$94,750) > PO limit (\$42,000) requires archive email; archive confirms email missing; payment sent to unapproved IBAN ...3304. | `CLM-001`, `CLM-002` | **Remedy:** Clawback \$52,750 overpayment to restore authorized PO cap (\$42,000); freeze payment to ...3304 and re-route to approved IBAN ...8821.<br>**Protocol (Human Review):** Treasury evaluates SWIFT gpi recall (MT192) and bank compliance investigates beneficiary account. |
+| **02. Cloud SLA Breach Coverup** | Grafana Telemetry, Prometheus p99, Git Commits, SLA Contract | Telemetry p99 (8,200ms) for 23min strictly breaches contract clause 4.2 (limit 500ms for >2min); triggers mandatory disclosure; disclosure log is absent. | `CLM-002`, `CLM-004`, `CLM-006` | **Remedy:** File mandatory customer SLA incident breach disclosure.<br>**Protocol (Human Review):** Legal reviews contract clause 4.2 and issues \$5,750 credit memo. |
+| **03. Supply Chain Ghost Inventory** | Shipping Manifest, Customs Clearance, Warehouse Receipt, Insurance | Conservation of physical mass violated: Manifest shows 45,000 shipped, warehouse received 31,200 (deficit 13,800), but insurance filing claims only 2,100 units. | `CLM-003`, `CLM-005`, `CLM-006` | **Remedy:** Amend insurance claim from 2,100 units to 13,800 units.<br>**Protocol (Human Review):** Risk management prepares supplemental Proof of Loss citing customs shortfall tallies. |
 
 ---
 
@@ -154,7 +165,7 @@ pip install z3-solver pytest
 
 # Run the formal verification test suite
 python -m pytest tests/ -v
-# (8 passed in ~0.95s — validates MUS minimality, payee IBAN matching, counterfactual governance invariance)
+# (9 passed in ~0.77s — validates MUS minimality, payee IBAN matching, counterfactual governance invariance, unfamiliar entity pipeline)
 ```
 
 ### 2. Launch Backend API
