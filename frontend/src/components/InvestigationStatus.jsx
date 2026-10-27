@@ -178,15 +178,26 @@ export default function InvestigationStatus({ data }) {
                   background: '#121215',
                   border: '1px solid #27272a',
                   borderRadius: '4px',
-                  padding: '6px 8px',
+                  padding: '7px 9px',
                   fontSize: '11px',
-                  lineHeight: '1.4',
+                  lineHeight: '1.45',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
                 }}
               >
-                <span style={{ color: '#38bdf8', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
-                  [{repair.action_type}]:
-                </span>{' '}
-                <span style={{ color: '#d4d4d8' }}>{repair.repair_recommendation}</span>
+                <div>
+                  <span style={{ color: '#38bdf8', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
+                    [{repair.action_type}]:
+                  </span>{' '}
+                  <span style={{ color: '#d4d4d8' }}>{repair.repair_recommendation}</span>
+                </div>
+                {repair.execution_protocol && (
+                  <div style={{ fontSize: '10px', color: '#a1a1aa', borderTop: '1px solid #1c1c22', paddingTop: '4px', fontFamily: 'ui-monospace, monospace' }}>
+                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>Execution Protocol: </span>
+                    {repair.execution_protocol}
+                  </div>
+                )}
               </div>
             ))}
           </div>

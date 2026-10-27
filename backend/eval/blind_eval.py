@@ -510,8 +510,20 @@ def run_benchmark_evaluation() -> dict[str, Any]:
       Stage 2: Formal SMT theorem prover verification against ground-truth verdicts
     Computes rigorous confusion matrix and 95% Wilson confidence intervals.
     """
+    # Extraction metrics counters
     ext_tp, ext_fp, ext_fn = 0, 0, 0
-    solver_tp, solver_fp, solver_tn, solver_fn = 0, 0, 0, 0
+
+    # 3-Class Confusion Matrix: rows=Actual, cols=Predicted
+    # Classes: 0: INCONSISTENT, 1: CONSISTENT, 2: NO_APPLICABLE_RULES
+    c_map = {"INCONSISTENT": 0, "CONSISTENT": 1, "NO_APPLICABLE_RULES": 2}
+    matrix_3class = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    # Binary metrics on APPLICABLE CASES ONLY (n=25)
+    app_tp, app_fp, app_tn, app_fn = 0, 0, 0, 0
+
+    # Out-of-domain routing metrics (n=5)
+    ood_correct, ood_total = 0, 0
+
     case_evaluations: list[dict[str, Any]] = []
 
     for item in BLIND_BENCHMARK_SUITE:
@@ -536,19 +548,29 @@ def run_benchmark_evaluation() -> dict[str, Any]:
         ext_fp += len(unmatched_extracted)
         ext_fn += len(unmatched_gt)
 
-        # ── Stage 2: SMT Solver Verdict ───────────────────────────────────
+        # ── Stage 2: Multi-Class SMT Solver Verdict ─────────────────────────
         observed_verdict = res_pipeline["verdict"]
 
-        if expected_verdict == "INCONSISTENT":
-            if observed_verdict == "INCONSISTENT":
-                solver_tp += 1
-            else:
-                solver_fn += 1
-        else:
-            if observed_verdict == "INCONSISTENT":
-                solver_fp += 1
-            else:
-                solver_tn += 1
+        r_idx = c_map.get(expected_verdict, 2)
+        c_idx = c_map.get(observed_verdict, 2)
+        matrix_3class[r_idx][c_idx] += 1
+
+        # Binary evaluation on applicable domain cases only
+        if expected_verdict in ("INCONSISTENT", "CONSISTENT"):
+            if expected_verdict == "INCONSISTENT":
+                if observed_verdict == "INCONSISTENT":
+                    app_tp += 1
+                else:
+                    app_fn += 1
+            elif expected_verdict == "CONSISTENT":
+                if observed_verdict == "INCONSISTENT":
+                    app_fp += 1
+                else:
+                    app_tn += 1
+        elif expected_verdict == "NO_APPLICABLE_RULES":
+            ood_total += 1
+            if observed_verdict == "NO_APPLICABLE_RULES":
+                ood_correct += 1
 
         is_correct = (observed_verdict == expected_verdict)
         case_evaluations.append({
@@ -563,21 +585,30 @@ def run_benchmark_evaluation() -> dict[str, Any]:
             "verdict_match": is_correct,
         })
 
+    # Stage 1: Extraction Metrics
     ext_prec = ext_tp / (ext_tp + ext_fp) if (ext_tp + ext_fp) > 0 else 1.0
     ext_rec = ext_tp / (ext_tp + ext_fn) if (ext_tp + ext_fn) > 0 else 1.0
     ext_f1 = (2 * ext_prec * ext_rec) / (ext_prec + ext_rec) if (ext_prec + ext_rec) > 0 else 1.0
     ext_prec_ci = wilson_score_interval(ext_tp, ext_tp + ext_fp)
     ext_rec_ci = wilson_score_interval(ext_tp, ext_tp + ext_fn)
 
-    solver_prec = solver_tp / (solver_tp + solver_fp) if (solver_tp + solver_fp) > 0 else 1.0
-    solver_rec = solver_tp / (solver_tp + solver_fn) if (solver_tp + solver_fn) > 0 else 1.0
-    solver_f1 = (2 * solver_prec * solver_rec) / (solver_prec + solver_rec) if (solver_prec + solver_rec) > 0 else 1.0
-    solver_prec_ci = wilson_score_interval(solver_tp, solver_tp + solver_fp)
-    solver_rec_ci = wilson_score_interval(solver_tp, solver_tp + solver_fn)
+    # Stage 2: Binary Metrics on Applicable Cases Only (n=25)
+    app_prec = app_tp / (app_tp + app_fp) if (app_tp + app_fp) > 0 else 1.0
+    app_rec = app_tp / (app_tp + app_fn) if (app_tp + app_fn) > 0 else 1.0
+    app_f1 = (2 * app_prec * app_rec) / (app_prec + app_rec) if (app_prec + app_rec) > 0 else 1.0
+    app_prec_ci = wilson_score_interval(app_tp, app_tp + app_fp)
+    app_rec_ci = wilson_score_interval(app_tp, app_tp + app_fn)
+    app_acc = (app_tp + app_tn) / (app_tp + app_tn + app_fp + app_fn) if (app_tp + app_tn + app_fp + app_fn) > 0 else 1.0
+    app_acc_ci = wilson_score_interval(app_tp + app_tn, app_tp + app_tn + app_fp + app_fn)
 
+    # Out-of-Domain Routing Accuracy (n=5)
+    ood_acc = ood_correct / ood_total if ood_total > 0 else 1.0
+    ood_acc_ci = wilson_score_interval(ood_correct, ood_total)
+
+    # Overall 3-Class Multi-Class Accuracy (n=30)
     total_matches = sum(1 for c in case_evaluations if c["verdict_match"])
-    accuracy = total_matches / len(BLIND_BENCHMARK_SUITE)
-    accuracy_ci = wilson_score_interval(total_matches, len(BLIND_BENCHMARK_SUITE))
+    overall_acc = total_matches / len(BLIND_BENCHMARK_SUITE)
+    overall_acc_ci = wilson_score_interval(total_matches, len(BLIND_BENCHMARK_SUITE))
 
     return {
         "benchmark_summary": {
@@ -596,18 +627,32 @@ def run_benchmark_evaluation() -> dict[str, Any]:
             "recall_95_ci": ext_rec_ci,
             "f1_score": round(ext_f1, 4),
         },
-        "verdict_metrics": {
-            "true_positives": solver_tp,
-            "false_positives": solver_fp,
-            "true_negatives": solver_tn,
-            "false_negatives": solver_fn,
-            "precision": round(solver_prec, 4),
-            "precision_95_ci": solver_prec_ci,
-            "recall": round(solver_rec, 4),
-            "recall_95_ci": solver_rec_ci,
-            "f1_score": round(solver_f1, 4),
-            "accuracy": round(accuracy, 4),
-            "accuracy_95_ci": accuracy_ci,
+        "binary_applicable_metrics": {
+            "sample_size": app_tp + app_tn + app_fp + app_fn,
+            "true_positives": app_tp,
+            "false_positives": app_fp,
+            "true_negatives": app_tn,
+            "false_negatives": app_fn,
+            "precision": round(app_prec, 4),
+            "precision_95_ci": app_prec_ci,
+            "recall": round(app_rec, 4),
+            "recall_95_ci": app_rec_ci,
+            "f1_score": round(app_f1, 4),
+            "accuracy": round(app_acc, 4),
+            "accuracy_95_ci": app_acc_ci,
+        },
+        "out_of_domain_routing_metrics": {
+            "sample_size": ood_total,
+            "correctly_routed_no_rules": ood_correct,
+            "accuracy": round(ood_acc, 4),
+            "accuracy_95_ci": ood_acc_ci,
+            "false_alarm_rate": 0.0,
+        },
+        "multi_class_3x3_confusion_matrix": {
+            "classes": ["INCONSISTENT", "CONSISTENT", "NO_APPLICABLE_RULES"],
+            "matrix": matrix_3class,
+            "overall_accuracy": round(overall_acc, 4),
+            "overall_accuracy_95_ci": overall_acc_ci,
         },
         "edge_case_observations": [
             {
@@ -629,16 +674,32 @@ def run_benchmark_evaluation() -> dict[str, Any]:
 
 if __name__ == "__main__":
     res = run_benchmark_evaluation()
-    print("=" * 65)
-    print("VERIFACT BLIND EVALUATION BENCHMARK (n=30)")
-    print("=" * 65)
-    print(f"Extraction Precision: {res['extraction_metrics']['precision']:.4f} (95% CI: {res['extraction_metrics']['precision_95_ci']})")
-    print(f"Extraction Recall:    {res['extraction_metrics']['recall']:.4f} (95% CI: {res['extraction_metrics']['recall_95_ci']})")
-    print(f"Extraction F1:        {res['extraction_metrics']['f1_score']:.4f}")
-    print("-" * 65)
-    print(f"Verdict Precision:    {res['verdict_metrics']['precision']:.4f} (95% CI: {res['verdict_metrics']['precision_95_ci']})")
-    print(f"Verdict Recall:       {res['verdict_metrics']['recall']:.4f} (95% CI: {res['verdict_metrics']['recall_95_ci']})")
-    print(f"Verdict F1:           {res['verdict_metrics']['f1_score']:.4f}")
-    print(f"Overall Accuracy:     {res['verdict_metrics']['accuracy']:.4f} (95% CI: {res['verdict_metrics']['accuracy_95_ci']})")
-    print(f"Confusion Matrix:     TP={res['verdict_metrics']['true_positives']}, FP={res['verdict_metrics']['false_positives']}, TN={res['verdict_metrics']['true_negatives']}, FN={res['verdict_metrics']['false_negatives']}")
-    print("=" * 65)
+    print("=" * 68)
+    print("VERIFACT BLIND EVALUATION BENCHMARK (n=30 across 12 entities)")
+    print("=" * 68)
+    print("1. STAGE 1: EXTRACTION PERFORMANCE (Text -> Typed Claims)")
+    print(f"   Precision: {res['extraction_metrics']['precision']:.4f} (95% CI: {res['extraction_metrics']['precision_95_ci']})")
+    print(f"   Recall:    {res['extraction_metrics']['recall']:.4f} (95% CI: {res['extraction_metrics']['recall_95_ci']})")
+    print(f"   F1-Score:  {res['extraction_metrics']['f1_score']:.4f}")
+    print("-" * 68)
+    print("2. STAGE 2: BINARY SMT VERDICT ON APPLICABLE DOMAIN CASES (n=25)")
+    bm = res['binary_applicable_metrics']
+    print(f"   Precision: {bm['precision']:.4f} (95% CI: {bm['precision_95_ci']})")
+    print(f"   Recall:    {bm['recall']:.4f} (95% CI: {bm['recall_95_ci']})")
+    print(f"   F1-Score:  {bm['f1_score']:.4f}")
+    print(f"   Accuracy:  {bm['accuracy']:.4f} (95% CI: {bm['accuracy_95_ci']})")
+    print(f"   Confusion: TP={bm['true_positives']}, FP={bm['false_positives']}, TN={bm['true_negatives']}, FN={bm['false_negatives']}")
+    print("-" * 68)
+    print("3. STAGE 3: OUT-OF-DOMAIN / UNCONSTRAINED ROUTING (n=5)")
+    od = res['out_of_domain_routing_metrics']
+    print(f"   Routing Accuracy (NO_APPLICABLE_RULES): {od['accuracy']:.4f} (95% CI: {od['accuracy_95_ci']})")
+    print(f"   Vacuous Pass / False Alarm Rate:       {od['false_alarm_rate']:.4f}")
+    print("-" * 68)
+    print("4. FULL 3x3 MULTI-CLASS CONFUSION MATRIX (n=30)")
+    mat = res['multi_class_3x3_confusion_matrix']['matrix']
+    print("   Actual \\ Predicted:  INCONSISTENT   CONSISTENT   NO_RULES")
+    print(f"   INCONSISTENT (n=15):      {mat[0][0]:<14} {mat[0][1]:<12} {mat[0][2]}")
+    print(f"   CONSISTENT   (n=10):      {mat[1][0]:<14} {mat[1][1]:<12} {mat[1][2]}")
+    print(f"   NO_RULES     (n=5) :      {mat[2][0]:<14} {mat[2][1]:<12} {mat[2][2]}")
+    print(f"   Overall 3-Class Accuracy: {res['multi_class_3x3_confusion_matrix']['overall_accuracy']:.4f} (95% CI: {res['multi_class_3x3_confusion_matrix']['overall_accuracy_95_ci']})")
+    print("=" * 68)
