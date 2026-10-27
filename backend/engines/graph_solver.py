@@ -7,7 +7,7 @@ contradiction scoring, evidence coverage, and rich JSON export.
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import Any
 
 import networkx as nx
@@ -77,13 +77,14 @@ class GraphSolver:
         # ── Add evidence nodes ─────────────────────────────────────────────
         for claim in claims:
             nid = claim.claim_id
+            s_ref = asdict(claim.source_ref) if is_dataclass(claim.source_ref) else (claim.source_ref if isinstance(claim.source_ref, dict) else {})
             G.add_node(
                 nid,
                 node_type=NODE_EVIDENCE,
                 label=claim.text[:60] + ("…" if len(claim.text) > 60 else ""),
                 full_text=claim.text,
                 source_type=claim.source_type,
-                source_ref=asdict(claim.source_ref),
+                source_ref=s_ref,
                 claim_type=claim.claim_type,
                 confidence=claim.confidence,
                 timestamp=claim.timestamp,

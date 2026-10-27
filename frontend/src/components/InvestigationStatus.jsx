@@ -66,6 +66,51 @@ export default function InvestigationStatus({ data }) {
         </div>
       </div>
 
+      {/* Formal SMT Mathematical Proof Badge (Z3 Solver) */}
+      {data.smt_verification && (
+        <div
+          style={{
+            background: data.smt_verification.is_consistent ? '#121215' : 'rgba(239, 68, 68, 0.08)',
+            border: `1px solid ${data.smt_verification.is_consistent ? '#27272a' : 'rgba(239, 68, 68, 0.3)'}`,
+            borderRadius: '6px',
+            padding: '10px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '10.5px', color: data.smt_verification.is_consistent ? '#10b981' : '#ef4444', fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>
+              Z3 SMT VERIFIER: {data.smt_verification.is_consistent ? 'SAT' : 'UNSAT CORE PROVEN'}
+            </span>
+            <span style={{ fontSize: '9.5px', color: '#71717a', fontFamily: 'ui-monospace, monospace' }}>
+              Theorem Prover
+            </span>
+          </div>
+          <div style={{ fontSize: '11px', color: '#d4d4d8', lineHeight: '1.45', marginBottom: '6px' }}>
+            {data.smt_verification.formal_proof}
+          </div>
+          {data.smt_verification.unsat_core?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              <span style={{ fontSize: '10px', color: '#71717a', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>Minimal Core:</span>
+              {data.smt_verification.unsat_core.map((c) => (
+                <span
+                  key={c}
+                  style={{
+                    background: '#18181b',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#ef4444',
+                    padding: '1px 5px',
+                    borderRadius: '3px',
+                    fontSize: '9.5px',
+                    fontFamily: 'ui-monospace, monospace',
+                  }}
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Root Causes List */}
       <div>
         <div style={{ fontSize: '11px', color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600, marginBottom: '8px' }}>

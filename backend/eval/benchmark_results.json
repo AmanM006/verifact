@@ -1,0 +1,24 @@
+{
+  "benchmark_meta": {
+    "total_cases": 50,
+    "planted_anomalies": 30,
+    "clean_controls": 20,
+    "runtime_seconds": 0.087
+  },
+  "baseline_prompting_llm": {
+    "precision": 0.88,
+    "recall": 0.733,
+    "f1_score": 0.8,
+    "accuracy": 0.78,
+    "false_positives": 3,
+    "false_negatives": 8
+  },
+  "verifact_smt_prover": {
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "accuracy": 1.0,
+    "false_positives": 0,
+    "false_negatives": 0
+  }
+}

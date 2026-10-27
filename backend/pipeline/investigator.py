@@ -15,6 +15,7 @@ from backend.engines.graph_solver import GraphSolver, graph_solver
 from backend.engines.meterless_hmem import HMem, MeterlessNightshift, hmem, nightshift
 from backend.engines.nemotron_reasoner import Claim, ContradictionResult, NemotronReasoner, reasoner
 from backend.engines.zetaris_client import ZetarisClient
+from backend.engines.smt_verifier import smt_verifier
 
 
 class Investigator:
@@ -167,6 +168,9 @@ class Investigator:
                 "timestamp": node_data.get("timestamp"),
             })
 
+        # ── Step 7: Formal SMT Verification (Z3 Solver) ───────────────────
+        smt_result = smt_verifier.verify_scenario_constraints(scenario_id, [c.to_dict() for c in claims])
+
         # ── Compute processing time ────────────────────────────────────────
         elapsed_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
@@ -180,6 +184,7 @@ class Investigator:
             "summary": narrative,
             "root_causes": root_cause_descriptions,
             "contradiction_matrix": contradiction_matrix,
+            "smt_verification": smt_result,
             "evidence_coverage_pct": coverage["coverage_pct"],
             "evidence_coverage_detail": coverage,
             "causal_chain_depth": max((c.depth for c in causal_chains), default=0),
@@ -200,6 +205,7 @@ class Investigator:
                 "nvidia_nemotron": self._reasoner.model_info["mode"],
                 "nemotron_model": self._reasoner.model_info["model"],
                 "graph_engine": f"NetworkX DAG — {graph_json['node_count']} nodes, {graph_json['edge_count']} edges",
+                "formal_prover": f"Z3 SMT Solver — {smt_result.get('solver_verdict', 'Active')}",
             },
         }
 
