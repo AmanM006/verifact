@@ -1,6 +1,20 @@
 export default function InvestigationStatus({ data }) {
   if (!data) return null;
 
+  const downloadProofCertificate = () => {
+    const smt2 = data.smt_verification?.proof_certificate?.full_smt_lib2;
+    if (!smt2) return;
+    const blob = new Blob([smt2], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `verifact_proof_${data.scenario_id || 'inconsistency'}.smt2`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div
       style={{
@@ -108,6 +122,31 @@ export default function InvestigationStatus({ data }) {
                   {c}
                 </span>
               ))}
+            </div>
+          )}
+          {data.smt_verification.proof_certificate?.full_smt_lib2 && (
+            <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '9px', color: '#71717a', fontFamily: 'ui-monospace, monospace' }}>
+                Reproducible SMT-LIB2 ({data.smt_verification.proof_certificate.solver})
+              </span>
+              <button
+                onClick={downloadProofCertificate}
+                title="Download self-contained SMT-LIB2 benchmark to verify UNSAT offline in Z3/CVC5"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#f87171',
+                  borderRadius: '3px',
+                  padding: '2px 7px',
+                  fontSize: '9.5px',
+                  cursor: 'pointer',
+                  fontFamily: 'ui-monospace, monospace',
+                  fontWeight: 600,
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                ↓ Download proof.smt2
+              </button>
             </div>
           )}
         </div>

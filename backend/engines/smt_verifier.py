@@ -372,21 +372,21 @@ class SMTVerifier:
 
             # Physical Inventory extraction
             if re.search(r"departed|shipped", lower_txt) and re.search(r"manifest|port", lower_txt):
-                val = self._extract_first_number(txt)
+                val = self._extract_units(txt) or self._extract_first_number(txt)
                 if val is not None:
                     parsed_claims.append(VerifierClaim(id=cid, var="shipped", value=int(val), raw_span=txt))
                     grounding_stats["grounded"] += 1
                     claimed_in_this_item = True
 
             if re.search(r"warehouse|received", lower_txt) and re.search(r"units", lower_txt):
-                val = self._extract_first_number(txt)
+                val = self._extract_units(txt) or self._extract_first_number(txt)
                 if val is not None:
                     parsed_claims.append(VerifierClaim(id=cid, var="received", value=int(val), raw_span=txt))
                     grounding_stats["grounded"] += 1
                     claimed_in_this_item = True
 
             if re.search(r"insurance claim|filed for", lower_txt) and re.search(r"units", lower_txt):
-                val = self._extract_first_number(txt)
+                val = self._extract_units(txt) or self._extract_first_number(txt)
                 if val is not None:
                     parsed_claims.append(VerifierClaim(id=cid, var="claimed_loss", value=int(val), raw_span=txt))
                     grounding_stats["grounded"] += 1
@@ -410,6 +410,17 @@ class SMTVerifier:
     def _extract_amount(self, text: str) -> float | None:
         """Extract explicit monetary figures like $42,000 or $94,750."""
         m = re.search(r"\$\s*([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?)", text)
+        if m:
+            clean = m.group(1).replace(",", "")
+            try:
+                return float(clean)
+            except ValueError:
+                return None
+        return None
+
+    def _extract_units(self, text: str) -> float | None:
+        """Extract explicit unit counts like '45,000 units' or 'received only 31,200 units' or 'filed for only 2,100 units'."""
+        m = re.search(r"([0-9]{1,3}(?:,[0-9]{3})*|\d+)\s*units", text.lower())
         if m:
             clean = m.group(1).replace(",", "")
             try:

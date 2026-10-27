@@ -105,3 +105,64 @@ def test_full_investigation_pipeline_consistency_verdict():
     assert res["smt_verification"]["verdict"] == "INCONSISTENT"
     assert len(res["smt_verification"]["minimal_core"]) > 0
     assert len(res["root_causes"]) > 0
+
+
+def test_counterfactual_repair_authoritative_invariance():
+    """Verify that MaxSMT never legitimizes fraud by increasing authoritative PO amount or changing PO IBAN."""
+    from backend.engines.counterfactual_engine import counterfactual_engine
+
+    claims = [
+        VerifierClaim(id="CLM-001", var="po.amount", value=42000.0),
+        VerifierClaim(id="CLM-001", var="po.iban", value="GB8821"),
+        VerifierClaim(id="CLM-002", var="ledger.dispatched", value=94750.0),
+        VerifierClaim(id="CLM-002", var="ledger.iban", value="DE3304"),
+        VerifierClaim(id="CLM-003", var="email.exists", value=False),
+    ]
+    repairs = counterfactual_engine.compute_repair(claims, ["CLM-001", "CLM-002"])
+    
+    # Assert authoritative records are never mutated
+    repair_vars = {r["variable"] for r in repairs}
+    assert "po.amount" not in repair_vars
+    assert "po.iban" not in repair_vars
+
+    # Assert operational targets are remediated
+    assert "ledger.dispatched" in repair_vars
+    assert "ledger.iban" in repair_vars
+    
+    wire_repair = next(r for r in repairs if r["variable"] == "ledger.dispatched")
+    assert wire_repair["counterfactual_value"] == 42000.0
+    assert wire_repair["action_type"] == "RECOVER_OVERPAYMENT"
+    assert "clawback" in wire_repair["repair_recommendation"].lower()
+
+    iban_repair = next(r for r in repairs if r["variable"] == "ledger.iban")
+    assert iban_repair["counterfactual_value"] == "GB8821"
+    assert iban_repair["action_type"] == "FREEZE_AND_REROUTE_PAYMENT"
+
+
+def test_counterfactual_sla_and_inventory_remediation():
+    """Verify SLA disclosure and physical inventory counterfactual repairs."""
+    from backend.engines.counterfactual_engine import counterfactual_engine
+
+    # SLA scenario
+    sla_claims = [
+        VerifierClaim(id="CLM-002", var="p99_latency_ms", value=8200.0),
+        VerifierClaim(id="CLM-004", var="sla_threshold_ms", value=500.0),
+        VerifierClaim(id="CLM-006", var="downtime_duration_min", value=23.0),
+        VerifierClaim(id="CLM-006", var="disclosure.filed", value=False),
+    ]
+    sla_repairs = counterfactual_engine.compute_repair(sla_claims, ["CLM-002", "CLM-004", "CLM-006"])
+    disc_repair = next(r for r in sla_repairs if r["variable"] == "disclosure.filed")
+    assert disc_repair["counterfactual_value"] is True
+    assert disc_repair["action_type"] == "FILE_INCIDENT_DISCLOSURE"
+
+    # Inventory scenario
+    inv_claims = [
+        VerifierClaim(id="CLM-003", var="shipped", value=45000),
+        VerifierClaim(id="CLM-005", var="received", value=31200),
+        VerifierClaim(id="CLM-006", var="claimed_loss", value=2100),
+    ]
+    inv_repairs = counterfactual_engine.compute_repair(inv_claims, ["CLM-003", "CLM-005", "CLM-006"])
+    loss_repair = next(r for r in inv_repairs if r["variable"] == "claimed_loss")
+    assert loss_repair["counterfactual_value"] == 13800.0
+    assert loss_repair["action_type"] == "AMEND_INSURANCE_CLAIM"
+
