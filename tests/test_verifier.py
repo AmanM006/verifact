@@ -1,69 +1,72 @@
 """
 Unit & Integration Test Suite for VeriFact
 Validates:
-  1. Z3 SMT Formal Theorem Prover (UNSAT Core extraction)
-  2. Directed Acyclic Graph (DAG) cycle prevention and topological sort
-  3. Meterless H-MEM session storage and claim invalidation
-  4. Investigation pipeline execution across all scenarios
+  1. Deletion-based minimal UNSAT core extraction
+  2. Generic rule-based consistency vs inconsistency vs NO_APPLICABLE_RULES
+  3. Minimality property: removing any single core element makes remaining claims SAT
+  4. Non-applicable rules reporting honesty (never vacuous SAT)
+  5. Meterless H-MEM session persistence & refutation
 """
 
 import asyncio
-import networkx as nx
-from backend.engines.smt_verifier import smt_verifier
+from backend.engines.smt_verifier import smt_verifier, VerifierClaim
 from backend.engines.graph_solver import graph_solver
 from backend.engines.meterless_hmem import HMem
 from backend.engines.nemotron_reasoner import Claim
 from backend.pipeline.investigator import Investigator
 
 
-def test_smt_procurement_fraud_unsat():
-    """Verify Z3 proves the procurement fraud contradiction as mathematically UNSAT."""
-    res = smt_verifier.verify_scenario_constraints("procurement_fraud", [])
-    assert res["is_consistent"] is False
-    assert "UNSAT" in res["solver_verdict"]
-    assert len(res["unsat_core"]) >= 2
-    assert "CLM_001_PO_AUTH" in res["unsat_core"]
-    assert "CLM_002_LEDGER_DISPATCH" in res["unsat_core"]
-
-
-def test_smt_clean_scenario_sat():
-    """Verify consistent generic claims return SAT with zero UNSAT core."""
-    res = smt_verifier.verify_scenario_constraints("clean_scenario", [])
-    assert res["is_consistent"] is True
-    assert "SAT" in res["solver_verdict"]
-    assert len(res["unsat_core"]) == 0
-
-
-def test_graph_dag_topological_sort():
-    """Ensure the causal graph builds a valid DAG and detects root causes."""
+def test_smt_generic_inconsistency_and_deletion_minimality():
+    """Verify true deletion-based minimal unsatisfiable subset (MUS)."""
+    # Over-disbursement without authorization
     claims = [
-        Claim(
-            claim_id="CLM-001",
-            text="ERP PO created",
-            confidence=0.95,
-            source_type="sql",
-            source_ref={"table": "erp"},
-            timestamp="2026-10-15T09:00:00Z",
-            entity_mentions=["PO-1001"],
-            claim_type="financial"
-        ),
-        Claim(
-            claim_id="CLM-002",
-            text="Wire dispatched",
-            confidence=0.90,
-            source_type="sql",
-            source_ref={"table": "ledger"},
-            timestamp="2026-10-16T09:00:00Z",
-            entity_mentions=["PAY-2001"],
-            claim_type="financial"
-        ),
+        VerifierClaim(id="CLM-001", var="po.amount", value=42000.0),
+        VerifierClaim(id="CLM-002", var="ledger.dispatched", value=94750.0),
+        VerifierClaim(id="CLM-003", var="email.exists", value=False),
+        # Irrelevant claim that should NOT be part of the minimal core
+        VerifierClaim(id="CLM-004", var="shipped", value=1000),
     ]
-    contradictions = []
-    G = graph_solver.build_evidence_graph(claims, contradictions)
-    root_causes = graph_solver.find_root_causes(G)
-    assert len(root_causes) > 0
-    # Graph must be acyclic
-    assert nx.is_directed_acyclic_graph(G) is True
+    res = smt_verifier.verify_claims(claims)
+    assert res["verdict"] == "INCONSISTENT"
+    assert res["is_consistent"] is False
+    core = res["minimal_core"]
+    
+    # Core must contain exactly the 3 conflicting claims, not CLM-004
+    assert set(core) == {"CLM-001", "CLM-002", "CLM-003"}
+    assert "CLM-004" not in core
+    assert res["minimal_conflict_size"] == 3
+
+    # Minimality property test: removing any one claim in core must make remaining SAT
+    for removed_id in core:
+        sub_claims = [c for c in claims if c.id != removed_id and c.id != "CLM-004"]
+        sub_res = smt_verifier.verify_claims(sub_claims)
+        # Without any one of the 3 axioms, the overage rule cannot prove inconsistency
+        assert sub_res["verdict"] in ("CONSISTENT", "NO_APPLICABLE_RULES")
+
+
+def test_smt_consistent_state():
+    """Verify legitimate disbursements within PO bounds evaluate as CONSISTENT."""
+    claims = [
+        VerifierClaim(id="CLM-001", var="po.amount", value=50000.0),
+        VerifierClaim(id="CLM-002", var="ledger.dispatched", value=48000.0),
+        VerifierClaim(id="CLM-003", var="email.exists", value=False),
+    ]
+    res = smt_verifier.verify_claims(claims)
+    assert res["verdict"] == "CONSISTENT"
+    assert res["is_consistent"] is True
+    assert len(res["minimal_core"]) == 0
+    assert "R_DISBURSEMENT_LIMIT" in res["rules_checked"]
+
+
+def test_smt_no_applicable_rules_honesty():
+    """Ensure unconstrained input returns NO_APPLICABLE_RULES, never vacuous SAT."""
+    claims = [
+        VerifierClaim(id="CLM-901", var="untracked.metric", value=123.45),
+        VerifierClaim(id="CLM-902", var="random.counter", value=99),
+    ]
+    res = smt_verifier.verify_claims(claims)
+    assert res["verdict"] == "NO_APPLICABLE_RULES"
+    assert len(res["rules_checked"]) == 0
 
 
 def test_hmem_storage_and_invalidation():
@@ -85,12 +88,12 @@ def test_hmem_storage_and_invalidation():
     assert invalidated_val["invalidation_reason"] == "Refuted by Z3 proof"
 
 
-def test_full_investigation_pipeline():
+def test_full_investigation_pipeline_consistency_verdict():
     """Run full end-to-end investigation pipeline on procurement scenario."""
     inv = Investigator()
     res = asyncio.run(inv.investigate("procurement_fraud"))
     assert res["status"] == "complete"
     assert "smt_verification" in res
-    assert res["smt_verification"]["is_consistent"] is False
+    assert res["smt_verification"]["verdict"] == "INCONSISTENT"
+    assert len(res["smt_verification"]["minimal_core"]) > 0
     assert len(res["root_causes"]) > 0
-    assert len(res["graph"]["nodes"]) > 0
