@@ -78,11 +78,13 @@ export default function InvestigationStatus({ data }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
             <span style={{ fontSize: '10.5px', color: data.smt_verification.is_consistent ? '#10b981' : '#ef4444', fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>
-              Z3 SMT VERIFIER: {data.smt_verification.is_consistent ? 'SAT' : 'UNSAT CORE PROVEN'}
+              Z3 SMT VERIFIER: {data.smt_verification.verdict}
             </span>
-            <span style={{ fontSize: '9.5px', color: '#71717a', fontFamily: 'ui-monospace, monospace' }}>
-              Theorem Prover
-            </span>
+            {data.smt_verification.grounding_gate && (
+              <span style={{ fontSize: '9.5px', color: '#a1a1aa', fontFamily: 'ui-monospace, monospace' }}>
+                Grounding Gate: {data.smt_verification.grounding_gate.grounded}/{data.smt_verification.grounding_gate.proposed} verified
+              </span>
+            )}
           </div>
           <div style={{ fontSize: '11px', color: '#d4d4d8', lineHeight: '1.45', marginBottom: '6px' }}>
             {data.smt_verification.formal_proof}
