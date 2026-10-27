@@ -89,10 +89,10 @@ export default function InvestigationStatus({ data }) {
           <div style={{ fontSize: '11px', color: '#d4d4d8', lineHeight: '1.45', marginBottom: '6px' }}>
             {data.smt_verification.formal_proof}
           </div>
-          {data.smt_verification.unsat_core?.length > 0 && (
+          {data.smt_verification.minimal_core?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
               <span style={{ fontSize: '10px', color: '#71717a', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>Minimal Core:</span>
-              {data.smt_verification.unsat_core.map((c) => (
+              {data.smt_verification.minimal_core.map((c) => (
                 <span
                   key={c}
                   style={{
@@ -110,6 +110,47 @@ export default function InvestigationStatus({ data }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Counterfactual Repair Proposals (MaxSMT / Z3 Optimize) */}
+      {data.counterfactual_repairs?.length > 0 && (
+        <div
+          style={{
+            background: 'rgba(56, 189, 248, 0.05)',
+            border: '1px solid rgba(56, 189, 248, 0.25)',
+            borderRadius: '6px',
+            padding: '10px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '10.5px', color: '#38bdf8', fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>
+              WHAT WOULD RESOLVE THIS? (MaxSMT)
+            </span>
+            <span style={{ fontSize: '9px', color: '#71717a', fontFamily: 'ui-monospace, monospace' }}>
+              Minimal Counterfactual
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {data.counterfactual_repairs.map((repair, i) => (
+              <div
+                key={i}
+                style={{
+                  background: '#121215',
+                  border: '1px solid #27272a',
+                  borderRadius: '4px',
+                  padding: '6px 8px',
+                  fontSize: '11px',
+                  lineHeight: '1.4',
+                }}
+              >
+                <span style={{ color: '#38bdf8', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
+                  [{repair.action_type}]:
+                </span>{' '}
+                <span style={{ color: '#d4d4d8' }}>{repair.repair_recommendation}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

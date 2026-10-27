@@ -55,15 +55,15 @@ export default function Header() {
 
       {/* Right: Technical Stack Pill Indicators */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <TechPill label="Zetaris USL" />
-        <TechPill label="Meterless H-MEM" />
-        <TechPill label="NVIDIA Nemotron" />
+        <TechPill label="Zetaris USL" status="SIMULATED FEDERATION" />
+        <TechPill label="H-MEM Local Ledger" status="IN-MEMORY ENGINE" />
+        <TechPill label="NVIDIA Nemotron" status="EXTRACTION PARSER" />
       </div>
     </header>
   );
 }
 
-function TechPill({ label }) {
+function TechPill({ label, status }) {
   return (
     <div
       style={{
@@ -72,12 +72,27 @@ function TechPill({ label }) {
         borderRadius: '4px',
         padding: '3px 8px',
         fontSize: '11px',
-        color: '#a1a1aa',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
         fontFamily: 'ui-monospace, monospace',
-        fontWeight: 500,
       }}
     >
-      {label}
+      <span style={{ color: '#ffffff', fontWeight: 600 }}>{label}</span>
+      {status && (
+        <span
+          style={{
+            fontSize: '9px',
+            color: '#a1a1aa',
+            background: '#18181b',
+            border: '1px solid #27272a',
+            padding: '1px 4px',
+            borderRadius: '2px',
+          }}
+        >
+          {status}
+        </span>
+      )}
     </div>
   );
 }

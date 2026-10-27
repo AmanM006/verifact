@@ -16,6 +16,7 @@ from backend.engines.meterless_hmem import HMem, MeterlessNightshift, hmem, nigh
 from backend.engines.nemotron_reasoner import Claim, ContradictionResult, NemotronReasoner, reasoner
 from backend.engines.zetaris_client import ZetarisClient
 from backend.engines.smt_verifier import smt_verifier
+from backend.engines.counterfactual_engine import counterfactual_engine
 
 
 class Investigator:
@@ -171,6 +172,13 @@ class Investigator:
         # ── Step 7: Formal SMT Verification (Z3 Solver) ───────────────────
         smt_result = smt_verifier.verify_scenario_constraints(scenario_id, [c.to_dict() for c in claims])
 
+        # ── Step 8: Counterfactual Repair Analysis (MaxSMT / Z3 Optimize) ───
+        repairs: list[dict[str, Any]] = []
+        if smt_result.get("verdict") == "INCONSISTENT":
+            core_ids = smt_result.get("minimal_core", [])
+            parsed_claims = getattr(smt_verifier, "_last_parsed_claims", [])
+            repairs = counterfactual_engine.compute_repair(parsed_claims, core_ids)
+
         # ── Compute processing time ────────────────────────────────────────
         elapsed_ms = round((time.perf_counter() - t_start) * 1000, 2)
 
@@ -185,6 +193,7 @@ class Investigator:
             "root_causes": root_cause_descriptions,
             "contradiction_matrix": contradiction_matrix,
             "smt_verification": smt_result,
+            "counterfactual_repairs": repairs,
             "evidence_coverage_pct": coverage["coverage_pct"],
             "evidence_coverage_detail": coverage,
             "causal_chain_depth": max((c.depth for c in causal_chains), default=0),

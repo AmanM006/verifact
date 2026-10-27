@@ -102,6 +102,8 @@ class SMTVerifier:
     """
     Generic SMT solver with true deletion-based core minimization, grounding verification, and offline reproducible proof certificates.
     """
+    def __init__(self) -> None:
+        self._last_parsed_claims: list[VerifierClaim] = []
 
     def verify_claims(self, claims: Sequence[VerifierClaim]) -> dict[str, Any]:
         """
@@ -393,6 +395,7 @@ class SMTVerifier:
             if not claimed_in_this_item:
                 grounding_stats["unformalized"] += 1
 
+        self._last_parsed_claims = parsed_claims
         res = self.verify_claims(parsed_claims)
         res["grounding_gate"] = grounding_stats
         return res
