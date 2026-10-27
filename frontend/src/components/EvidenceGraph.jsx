@@ -1,9 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { X, Shield, AlertTriangle, GitBranch, Circle, Square } from 'lucide-react';
+import { X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 
 // ─── Layout helpers ──────────────────────────────────────────────────────────
 
-/** Topological sort returning an array of node ids in order */
 function topoSort(nodes, edges) {
   const ids = nodes.map((n) => n.id);
   const inDeg = Object.fromEntries(ids.map((id) => [id, 0]));
@@ -24,12 +23,10 @@ function topoSort(nodes, edges) {
       if (inDeg[nb] === 0) queue.push(nb);
     });
   }
-  // Append any remaining (cycles)
   ids.forEach((id) => { if (!sorted.includes(id)) sorted.push(id); });
   return sorted;
 }
 
-/** Assign each node to a layer (0 = leftmost/topmost) */
 function assignLayers(nodes, edges) {
   const sorted = topoSort(nodes, edges);
   const layer = Object.fromEntries(sorted.map((id) => [id, 0]));
@@ -46,15 +43,13 @@ function assignLayers(nodes, edges) {
   return layer;
 }
 
-/** Compute (x, y) positions for all nodes in a DAG layout */
 function computeLayout(nodes, edges, width, height) {
-  const PADDING_X = 90;
-  const PADDING_Y = 70;
+  const PADDING_X = 80;
+  const PADDING_Y = 60;
 
   const layers = assignLayers(nodes, edges);
-  const maxLayer = Math.max(...Object.values(layers));
+  const maxLayer = Math.max(...Object.values(layers), 0);
 
-  // Group nodes by layer
   const byLayer = {};
   nodes.forEach((n) => {
     const l = layers[n.id] ?? 0;
@@ -79,94 +74,102 @@ function computeLayout(nodes, edges, width, height) {
   return positions;
 }
 
-// ─── Node renderers ──────────────────────────────────────────────────────────
+// ─── Clean High-Contrast Nodes ──────────────────────────────────────────────
 
 const NODE_CONFIG = {
-  evidence:     { color: '#06b6d4', shape: 'circle',   r: 28 },
-  contradiction:{ color: '#f59e0b', shape: 'diamond',  r: 28 },
-  root_cause:   { color: '#8b5cf6', shape: 'hexagon',  r: 30 },
-  outcome:      { color: '#ef4444', shape: 'circle',   r: 30 },
-  gap:          { color: '#64748b', shape: 'circle',   r: 24, dashed: true },
+  evidence:      { color: '#38bdf8', border: '#0284c7', labelColor: '#ffffff', tag: 'EVIDENCE' },
+  contradiction: { color: '#f59e0b', border: '#d97706', labelColor: '#ffffff', tag: 'CONTRADICTION' },
+  root_cause:    { color: '#a855f7', border: '#7e22ce', labelColor: '#ffffff', tag: 'ROOT CAUSE' },
+  outcome:       { color: '#ef4444', border: '#b91c1c', labelColor: '#ffffff', tag: 'OUTCOME' },
+  gap:           { color: '#71717a', border: '#3f3f46', labelColor: '#d4d4d8', tag: 'GAP' },
 };
 
-function hexagonPoints(cx, cy, r) {
-  return Array.from({ length: 6 }, (_, i) => {
-    const angle = (Math.PI / 3) * i - Math.PI / 6;
-    return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
-  }).join(' ');
-}
-
-function NodeShape({ node, pos, selected, onClick, onHover }) {
+function NodeShape({ node, pos, selected, onClick }) {
   const cfg = NODE_CONFIG[node.type] || NODE_CONFIG.evidence;
-  const { x, y } = pos;
-  const label = node.label.replace('\n', '\n');
-  const lines = label.split('\n');
-  const glowFilter = `drop-shadow(0 0 8px ${cfg.color}88)`;
+  const lines = (node.label || node.id).split('\n');
 
-  const commonProps = {
-    fill: `${cfg.color}18`,
-    stroke: selected ? cfg.color : `${cfg.color}88`,
-    strokeWidth: selected ? 2.5 : 1.5,
-    strokeDasharray: cfg.dashed ? '5,3' : undefined,
-    style: { cursor: 'pointer', filter: selected ? glowFilter : undefined, transition: 'all 0.2s' },
-    onClick: () => onClick(node),
-    onMouseEnter: (e) => onHover(node, e),
-    onMouseLeave: () => onHover(null, null),
-  };
-
-  const labelEls = (
-    <>
-      {lines.map((line, i) => (
-        <text
-          key={i}
-          x={x}
-          y={y + (i - (lines.length - 1) / 2) * 13}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill={cfg.color}
-          fontSize="9"
-          fontFamily="monospace"
-          fontWeight="600"
-          style={{ pointerEvents: 'none', userSelect: 'none' }}
-        >
-          {line}
-        </text>
-      ))}
-    </>
-  );
-
-  if (cfg.shape === 'circle') {
-    return (
-      <g className="graph-node">
-        <circle cx={x} cy={y} r={cfg.r} {...commonProps} />
-        {labelEls}
-      </g>
-    );
-  }
-  if (cfg.shape === 'diamond') {
-    const d = cfg.r;
-    return (
-      <g className="graph-node">
-        <polygon
-          points={`${x},${y - d} ${x + d},${y} ${x},${y + d} ${x - d},${y}`}
-          {...commonProps}
+  return (
+    <g
+      className="graph-node"
+      style={{ cursor: 'pointer' }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(node);
+      }}
+    >
+      {/* Node selection indicator ring */}
+      {selected && (
+        <rect
+          x={pos.x - 48}
+          y={pos.y - 30}
+          width="96"
+          height="60"
+          rx="8"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="2"
         />
-        {labelEls}
-      </g>
-    );
-  }
-  if (cfg.shape === 'hexagon') {
-    return (
-      <g className="graph-node">
-        <polygon points={hexagonPoints(x, y, cfg.r)} {...commonProps} />
-        {labelEls}
-      </g>
-    );
-  }
-  return null;
-}
+      )}
 
-// ─── Edge ────────────────────────────────────────────────────────────────────
+      {/* Node Box */}
+      <rect
+        x={pos.x - 44}
+        y={pos.y - 26}
+        width="88"
+        height="52"
+        rx="6"
+        fill="#121215"
+        stroke={selected ? '#ffffff' : cfg.border}
+        strokeWidth={selected ? 2 : 1.5}
+      />
+
+      {/* Type badge on top border */}
+      <rect
+        x={pos.x - 44}
+        y={pos.y - 26}
+        width="88"
+        height="14"
+        rx="5"
+        fill={`${cfg.color}25`}
+      />
+      <text
+        x={pos.x}
+        y={pos.y - 16}
+        textAnchor="middle"
+        fill={cfg.color}
+        fontSize="8"
+        fontWeight="700"
+        fontFamily="ui-monospace, monospace"
+      >
+        {cfg.tag}
+      </text>
+
+      {/* Node text content */}
+      <text
+        x={pos.x}
+        y={pos.y + 4}
+        textAnchor="middle"
+        fill="#ededed"
+        fontSize="11"
+        fontWeight="600"
+      >
+        {lines[0]}
+      </text>
+      {lines[1] && (
+        <text
+          x={pos.x}
+          y={pos.y + 17}
+          textAnchor="middle"
+          fill="#a1a1aa"
+          fontSize="10"
+          fontFamily="ui-monospace, monospace"
+        >
+          {lines[1]}
+        </text>
+      )}
+    </g>
+  );
+}
 
 function Edge({ edge, positions }) {
   const src = positions[edge.source];
@@ -176,54 +179,63 @@ function Edge({ edge, positions }) {
   const dx = tgt.x - src.x;
   const dy = tgt.y - src.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  const r = 30;
-  const x1 = src.x + (dx / dist) * r;
-  const y1 = src.y + (dy / dist) * r;
-  const x2 = tgt.x - (dx / dist) * r;
-  const y2 = tgt.y - (dy / dist) * r;
+  if (dist === 0) return null;
+
+  const x1 = src.x + (dx / dist) * 44;
+  const y1 = src.y + (dy / dist) * 26;
+  const x2 = tgt.x - (dx / dist) * 46;
+  const y2 = tgt.y - (dy / dist) * 28;
 
   const mx = (x1 + x2) / 2;
   const my = (y1 + y2) / 2;
-
-  const opacity = 0.4 + edge.weight * 0.5;
-  const strokeWidth = 0.5 + edge.weight * 2;
 
   return (
     <g>
       <defs>
         <marker
           id={`arrow-${edge.source}-${edge.target}`}
-          markerWidth="6"
-          markerHeight="6"
-          refX="5"
-          refY="3"
+          markerWidth="7"
+          markerHeight="7"
+          refX="6"
+          refY="3.5"
           orient="auto"
         >
-          <path d="M0,0 L0,6 L6,3 z" fill={`rgba(99,132,255,${opacity})`} />
+          <polygon points="0 0, 7 3.5, 0 7" fill="#52525b" />
         </marker>
       </defs>
-      <path
-        d={`M${x1},${y1} Q${mx},${my - 20} ${x2},${y2}`}
-        fill="none"
-        stroke={`rgba(99,132,255,${opacity})`}
-        strokeWidth={strokeWidth}
-        strokeDasharray="6,3"
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="#3f3f46"
+        strokeWidth="1.5"
         markerEnd={`url(#arrow-${edge.source}-${edge.target})`}
-        className="animated-edge"
-        style={{ animationDuration: `${1 + (1 - edge.weight)}s` }}
       />
-      {/* Edge label */}
-      <text
-        x={mx}
-        y={my - 25}
-        textAnchor="middle"
-        fill="rgba(100,116,139,0.8)"
-        fontSize="8"
-        fontFamily="monospace"
-        style={{ pointerEvents: 'none', userSelect: 'none' }}
-      >
-        {edge.label}
-      </text>
+      {edge.label && (
+        <g transform={`translate(${mx}, ${my})`}>
+          <rect
+            x="-28"
+            y="-9"
+            width="56"
+            height="15"
+            rx="3"
+            fill="#09090b"
+            stroke="#27272a"
+            strokeWidth="1"
+          />
+          <text
+            x="0"
+            y="2"
+            textAnchor="middle"
+            fill="#a1a1aa"
+            fontSize="8.5"
+            fontFamily="ui-monospace, monospace"
+          >
+            {edge.label}
+          </text>
+        </g>
+      )}
     </g>
   );
 }
@@ -234,8 +246,6 @@ function NodeDetail({ node, data, onClose }) {
   const claim = data?.claims?.find((c) => c.claim_id === node.id);
   const cfg = NODE_CONFIG[node.type] || NODE_CONFIG.evidence;
 
-  const sourceIcon = { sql: '🗄️', comms: '💬', document: '📄' };
-
   return (
     <div
       style={{
@@ -243,134 +253,134 @@ function NodeDetail({ node, data, onClose }) {
         right: 0,
         top: 0,
         bottom: 0,
-        width: '260px',
-        background: '#0f1629',
-        borderLeft: `2px solid ${cfg.color}`,
+        width: '320px',
+        background: '#09090b',
+        borderLeft: '1px solid #27272a',
         zIndex: 20,
-        overflow: 'auto',
+        overflowY: 'auto',
         padding: '16px',
-        animation: 'fadeIn 0.2s ease-out',
-        boxShadow: `-8px 0 24px rgba(0,0,0,0.5)`,
+        boxShadow: '-8px 0 24px rgba(0,0,0,0.7)',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-        <div>
-          <div
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
             style={{
-              fontFamily: 'monospace',
-              fontSize: '11px',
-              fontWeight: 700,
+              background: `${cfg.color}20`,
               color: cfg.color,
-              marginBottom: '4px',
-            }}
-          >
-            {node.id}
-          </div>
-          <div
-            style={{
+              border: `1px solid ${cfg.border}`,
+              padding: '2px 7px',
+              borderRadius: '4px',
               fontSize: '10px',
-              color: '#64748b',
-              fontFamily: 'monospace',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
+              fontFamily: 'ui-monospace, monospace',
+              fontWeight: 700,
             }}
           >
-            {node.type.replace('_', ' ')}
-          </div>
+            {cfg.tag}
+          </span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#ffffff' }}>
+            {node.id}
+          </span>
         </div>
         <button
           onClick={onClose}
           style={{
             background: 'none',
             border: 'none',
-            color: '#64748b',
+            color: '#71717a',
             cursor: 'pointer',
-            padding: '2px',
+            padding: '4px',
           }}
         >
-          <X size={14} />
+          <X size={16} />
         </button>
       </div>
 
-      {/* Confidence bar */}
-      <div style={{ marginBottom: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <span style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace' }}>Confidence</span>
-          <span style={{ fontSize: '10px', color: cfg.color, fontFamily: 'monospace', fontWeight: 700 }}>
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ fontSize: '11px', color: '#71717a', marginBottom: '4px', fontFamily: 'ui-monospace, monospace' }}>
+          Confidence
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ flex: 1, background: '#18181b', borderRadius: '3px', height: '6px', overflow: 'hidden' }}>
+            <div
+              style={{
+                width: `${node.confidence * 100}%`,
+                height: '100%',
+                background: cfg.color,
+              }}
+            />
+          </div>
+          <span style={{ fontSize: '12px', color: '#ededed', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
             {Math.round(node.confidence * 100)}%
           </span>
-        </div>
-        <div style={{ background: '#1e2d4d', borderRadius: '2px', height: '4px' }}>
-          <div
-            style={{
-              width: `${node.confidence * 100}%`,
-              height: '100%',
-              background: cfg.color,
-              borderRadius: '2px',
-              boxShadow: `0 0 8px ${cfg.color}`,
-              transition: 'width 0.8s ease',
-            }}
-          />
         </div>
       </div>
 
       {claim ? (
         <>
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid #1e2d4d',
-              borderRadius: '6px',
-              padding: '10px',
-              fontSize: '11px',
-              color: '#94a3b8',
-              lineHeight: '1.6',
-              marginBottom: '10px',
-            }}
-          >
-            {claim.text}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: '#71717a', marginBottom: '6px', fontFamily: 'ui-monospace, monospace' }}>
+              Extracted Claim
+            </div>
+            <div
+              style={{
+                background: '#121215',
+                border: '1px solid #27272a',
+                borderRadius: '6px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#ededed',
+                lineHeight: '1.5',
+              }}
+            >
+              {claim.text}
+            </div>
           </div>
 
-          {/* Source provenance */}
-          <div
-            style={{
-              background: 'rgba(6,182,212,0.06)',
-              border: '1px solid rgba(6,182,212,0.2)',
-              borderRadius: '6px',
-              padding: '8px',
-              fontSize: '10px',
-              fontFamily: 'monospace',
-              color: '#06b6d4',
-              marginBottom: '10px',
-            }}
-          >
-            <div style={{ color: '#64748b', marginBottom: '4px' }}>Source Provenance</div>
-            <div>{sourceIcon[claim.source_type] || '📋'} {claim.source_type.toUpperCase()}</div>
-            {Object.entries(claim.source_ref).map(([k, v]) => (
-              <div key={k} style={{ color: '#94a3b8', marginLeft: '12px' }}>
-                <span style={{ color: '#475569' }}>{k}:</span> {String(v)}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', color: '#71717a', marginBottom: '6px', fontFamily: 'ui-monospace, monospace' }}>
+              Source Provenance
+            </div>
+            <div
+              style={{
+                background: '#121215',
+                border: '1px solid #27272a',
+                borderRadius: '6px',
+                padding: '10px',
+                fontSize: '11px',
+                fontFamily: 'ui-monospace, monospace',
+                color: '#38bdf8',
+              }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: '6px', color: '#ffffff' }}>
+                {claim.source_type.toUpperCase()}
               </div>
-            ))}
+              {claim.source_ref &&
+                Object.entries(claim.source_ref).map(([k, v]) => (
+                  <div key={k} style={{ color: '#a1a1aa', margin: '2px 0' }}>
+                    <span style={{ color: '#71717a' }}>{k}: </span>
+                    {String(v)}
+                  </div>
+                ))}
+            </div>
           </div>
 
-          {/* Entity mentions */}
           {claim.entity_mentions?.length > 0 && (
             <div>
-              <div style={{ fontSize: '10px', color: '#64748b', fontFamily: 'monospace', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ fontSize: '11px', color: '#71717a', marginBottom: '6px', fontFamily: 'ui-monospace, monospace' }}>
                 Entity Mentions
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                 {claim.entity_mentions.map((e) => (
                   <span
                     key={e}
                     style={{
-                      background: 'rgba(139,92,246,0.12)',
-                      border: '1px solid rgba(139,92,246,0.3)',
-                      borderRadius: '3px',
-                      padding: '1px 6px',
-                      fontSize: '9px',
-                      color: '#c4b5fd',
-                      fontFamily: 'monospace',
+                      background: '#18181b',
+                      border: '1px solid #27272a',
+                      borderRadius: '4px',
+                      padding: '2px 7px',
+                      fontSize: '11px',
+                      color: '#d4d4d8',
                     }}
                   >
                     {e}
@@ -379,74 +389,22 @@ function NodeDetail({ node, data, onClose }) {
               </div>
             </div>
           )}
-
-          <div style={{ marginTop: '10px', fontSize: '10px', color: '#475569', fontFamily: 'monospace' }}>
-            {new Date(claim.timestamp).toLocaleString()}
-          </div>
         </>
       ) : (
         <div
           style={{
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid #1e2d4d',
+            background: '#121215',
+            border: '1px solid #27272a',
             borderRadius: '6px',
-            padding: '10px',
-            fontSize: '11px',
-            color: '#94a3b8',
-            lineHeight: '1.6',
+            padding: '12px',
+            fontSize: '12px',
+            color: '#ededed',
+            lineHeight: '1.5',
           }}
         >
-          {node.label.replace('\n', ' ')}
+          {node.label}
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Legend ───────────────────────────────────────────────────────────────────
-
-function Legend() {
-  const items = [
-    { type: 'evidence', label: 'Evidence', color: '#06b6d4' },
-    { type: 'contradiction', label: 'Contradiction', color: '#f59e0b' },
-    { type: 'root_cause', label: 'Root Cause', color: '#8b5cf6' },
-    { type: 'outcome', label: 'Outcome', color: '#ef4444' },
-    { type: 'gap', label: 'Evidence Gap', color: '#64748b' },
-  ];
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '12px',
-        right: '12px',
-        background: 'rgba(15,22,41,0.9)',
-        border: '1px solid #1e2d4d',
-        borderRadius: '8px',
-        padding: '10px 12px',
-        zIndex: 5,
-        backdropFilter: 'blur(4px)',
-      }}
-    >
-      <div style={{ fontSize: '9px', color: '#64748b', fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>
-        Node Types
-      </div>
-      {items.map(({ type, label, color }) => (
-        <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-          <div
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: type === 'contradiction' ? '0' : '50%',
-              background: `${color}20`,
-              border: `1.5px solid ${color}`,
-              flexShrink: 0,
-              transform: type === 'contradiction' ? 'rotate(45deg)' : 'none',
-            }}
-          />
-          <span style={{ fontSize: '10px', color: '#94a3b8', fontFamily: 'monospace' }}>{label}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -454,10 +412,8 @@ function Legend() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function EvidenceGraph({ data }) {
-  const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [tooltip, setTooltip] = useState(null);
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef(null);
@@ -473,9 +429,28 @@ export default function EvidenceGraph({ data }) {
     return () => ro.disconnect();
   }, []);
 
+  // Intercept wheel events locally on the container so the whole page doesn't zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheelHandler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const zoomFactor = e.deltaY > 0 ? 0.92 : 1.08;
+      setTransform((t) => ({
+        ...t,
+        scale: Math.min(2.5, Math.max(0.4, t.scale * zoomFactor)),
+      }));
+    };
+
+    el.addEventListener('wheel', onWheelHandler, { passive: false });
+    return () => el.removeEventListener('wheel', onWheelHandler);
+  }, []);
+
   const graph = data?.graph;
-  const graphWidth = dimensions.width - (selectedNode ? 260 : 0) - 24;
-  const graphHeight = dimensions.height - 24;
+  const graphWidth = dimensions.width - (selectedNode ? 320 : 0) - 40;
+  const graphHeight = dimensions.height - 40;
 
   const positions = graph
     ? computeLayout(graph.nodes, graph.edges, graphWidth, graphHeight)
@@ -501,80 +476,9 @@ export default function EvidenceGraph({ data }) {
     panStart.current = null;
   }, []);
 
-  const handleWheel = useCallback((e) => {
-    e.preventDefault();
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    setTransform((t) => ({
-      ...t,
-      scale: Math.min(3, Math.max(0.3, t.scale * factor)),
-    }));
-  }, []);
-
-  const handleNodeHover = useCallback((node, e) => {
-    if (!node || !e) {
-      setTooltip(null);
-      return;
-    }
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    setTooltip({
-      node,
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  }, []);
-
-  if (!graph) {
-    return (
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Grid background */}
-        <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.3 }}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e2d4d" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-        <div style={{ textAlign: 'center', zIndex: 1, padding: '24px' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              background: 'rgba(59,130,246,0.1)',
-              border: '1px solid rgba(59,130,246,0.3)',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 12px',
-            }}
-          >
-            <GitBranch size={24} color="#3b82f6" />
-          </div>
-          <div style={{ color: '#e2e8f0', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-            Evidence Causality Graph
-          </div>
-          <div style={{ color: '#64748b', fontSize: '11px', fontFamily: 'monospace' }}>
-            Run an investigation to see the causality graph
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const resetZoom = () => setTransform({ x: 0, y: 0, scale: 1 });
+  const zoomIn = () => setTransform((t) => ({ ...t, scale: Math.min(2.5, t.scale * 1.15) }));
+  const zoomOut = () => setTransform((t) => ({ ...t, scale: Math.max(0.4, t.scale * 0.85) }));
 
   return (
     <div
@@ -583,97 +487,88 @@ export default function EvidenceGraph({ data }) {
         flex: 1,
         position: 'relative',
         overflow: 'hidden',
+        background: '#000000',
         cursor: isPanning ? 'grabbing' : 'grab',
+        userSelect: 'none',
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
     >
-      {/* Background grid */}
-      <svg
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.15 }}
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      {/* Subtle Dot Grid */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12, pointerEvents: 'none' }}>
         <defs>
-          <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e2d4d" strokeWidth="0.5" />
+          <pattern id="dotgrid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1" fill="#71717a" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid2)" />
+        <rect width="100%" height="100%" fill="url(#dotgrid)" />
       </svg>
 
-      {/* Main graph SVG */}
-      <svg
-        ref={svgRef}
-        style={{ width: '100%', height: '100%', display: 'block' }}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <g transform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
-          {/* Edges first (behind nodes) */}
-          {graph.edges.map((edge, i) => (
-            <Edge key={i} edge={edge} positions={positions} />
-          ))}
-          {/* Nodes */}
-          {graph.nodes.map((node) => (
-            <NodeShape
-              key={node.id}
-              node={node}
-              pos={positions[node.id] || { x: 100, y: 100 }}
-              selected={selectedNode?.id === node.id}
-              onClick={setSelectedNode}
-              onHover={handleNodeHover}
-            />
-          ))}
-        </g>
-      </svg>
+      {/* Main SVG Graph */}
+      {graph && (
+        <svg style={{ width: '100%', height: '100%', display: 'block' }}>
+          <g transform={`translate(${transform.x},${transform.y}) scale(${transform.scale})`}>
+            {graph.edges.map((edge, i) => (
+              <Edge key={i} edge={edge} positions={positions} />
+            ))}
+            {graph.nodes.map((node) => (
+              <NodeShape
+                key={node.id}
+                node={node}
+                pos={positions[node.id] || { x: 100, y: 100 }}
+                selected={selectedNode?.id === node.id}
+                onClick={setSelectedNode}
+              />
+            ))}
+          </g>
+        </svg>
+      )}
 
-      {/* Legend */}
-      <Legend />
-
-      {/* Zoom hint */}
+      {/* Floating Controls Bar */}
       <div
         style={{
           position: 'absolute',
-          bottom: '10px',
-          left: '12px',
-          fontSize: '9px',
-          color: '#475569',
-          fontFamily: 'monospace',
+          bottom: '12px',
+          right: selectedNode ? '332px' : '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: '#121215',
+          border: '1px solid #27272a',
+          borderRadius: '6px',
+          padding: '3px',
+          zIndex: 10,
         }}
       >
-        Scroll to zoom · Drag to pan · Click node for details
+        <button
+          onClick={zoomIn}
+          style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '5px', cursor: 'pointer', borderRadius: '4px' }}
+          title="Zoom in"
+        >
+          <ZoomIn size={14} />
+        </button>
+        <button
+          onClick={zoomOut}
+          style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '5px', cursor: 'pointer', borderRadius: '4px' }}
+          title="Zoom out"
+        >
+          <ZoomOut size={14} />
+        </button>
+        <button
+          onClick={resetZoom}
+          style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '5px', cursor: 'pointer', borderRadius: '4px' }}
+          title="Reset"
+        >
+          <RotateCcw size={14} />
+        </button>
+        <span style={{ fontSize: '10px', color: '#71717a', padding: '0 6px', fontFamily: 'ui-monospace, monospace' }}>
+          {Math.round(transform.scale * 100)}%
+        </span>
       </div>
 
-      {/* Tooltip */}
-      {tooltip && (
-        <div
-          style={{
-            position: 'absolute',
-            left: tooltip.x + 14,
-            top: tooltip.y - 10,
-            background: '#0f1629',
-            border: `1px solid ${NODE_CONFIG[tooltip.node.type]?.color || '#3b82f6'}60`,
-            borderRadius: '6px',
-            padding: '6px 10px',
-            fontSize: '10px',
-            color: '#e2e8f0',
-            fontFamily: 'monospace',
-            pointerEvents: 'none',
-            zIndex: 30,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-          }}
-        >
-          <div style={{ color: NODE_CONFIG[tooltip.node.type]?.color || '#3b82f6', fontWeight: 700 }}>
-            {tooltip.node.id}
-          </div>
-          <div style={{ color: '#64748b' }}>{tooltip.node.type.replace('_', ' ')}</div>
-          <div>Confidence: {Math.round(tooltip.node.confidence * 100)}%</div>
-        </div>
-      )}
-
-      {/* Node detail drawer */}
+      {/* Selected Node Drawer */}
       {selectedNode && (
         <NodeDetail
           node={selectedNode}
