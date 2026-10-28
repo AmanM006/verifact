@@ -52,11 +52,11 @@ export default function ContradictionMatrix({ data }) {
                   {c.claim_a_id} ⚡ {c.claim_b_id}
                 </span>
                 <span style={{ fontSize: '10px', color: '#71717a', fontFamily: 'ui-monospace, monospace' }}>
-                  {Math.round(c.score * 100)}% score
+                  {Math.round((c.contradiction_score ?? c.score ?? 0.85) * 100)}% score
                 </span>
               </div>
               <div style={{ fontSize: '11.5px', color: '#d4d4d8', lineHeight: '1.4' }}>
-                {c.description}
+                {c.explanation || c.description || 'Discrepancy detected'}
               </div>
             </div>
           ))}

@@ -340,7 +340,7 @@ function NodeDetail({ node, data, onClose }) {
                 lineHeight: '1.5',
               }}
             >
-              {claim.text}
+              {claim.text || claim.full_text || 'Claim extracted'}
             </div>
           </div>
 
@@ -360,15 +360,17 @@ function NodeDetail({ node, data, onClose }) {
               }}
             >
               <div style={{ fontWeight: 600, marginBottom: '6px', color: '#ffffff' }}>
-                {claim.source_type.toUpperCase()}
+                {String(claim.source_type || 'SQL').toUpperCase()}
               </div>
               {claim.source_ref &&
-                Object.entries(claim.source_ref).map(([k, v]) => (
-                  <div key={k} style={{ color: '#a1a1aa', margin: '2px 0' }}>
-                    <span style={{ color: '#71717a' }}>{k}: </span>
-                    {String(v)}
-                  </div>
-                ))}
+                Object.entries(claim.source_ref)
+                  .filter(([_, v]) => v !== null && v !== undefined)
+                  .map(([k, v]) => (
+                    <div key={k} style={{ color: '#a1a1aa', margin: '2px 0' }}>
+                      <span style={{ color: '#71717a' }}>{k}: </span>
+                      {String(v)}
+                    </div>
+                  ))}
             </div>
           </div>
 
