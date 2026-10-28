@@ -59,18 +59,26 @@ export default function InvestigationStatus({ data }) {
       >
         {(() => {
           if (!data.summary) return null;
-          // Strip leading markdown headers and format paragraphs cleanly
-          const cleanText = data.summary
+          // Format paragraphs preserving bold words
+          const paragraphs = data.summary
             .replace(/^#+\s+/gm, '')
-            .replace(/\*\*(.*?)\*\*/g, '');
-          const paragraphs = cleanText.split(/\n+/).filter(Boolean);
+            .split(/\n+/)
+            .filter(Boolean);
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {paragraphs.map((p, idx) => (
-                <p key={idx} style={{ margin: 0 }}>
-                  {p}
-                </p>
-              ))}
+              {paragraphs.map((p, idx) => {
+                const parts = p.split(/(\*\*.*?\*\*)/g);
+                return (
+                  <p key={idx} style={{ margin: 0 }}>
+                    {parts.map((part, pIdx) => {
+                      if (part.startsWith('**') && part.endsWith('**')) {
+                        return <strong key={pIdx} style={{ color: '#ffffff', fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+                      }
+                      return part;
+                    })}
+                  </p>
+                );
+              })}
             </div>
           );
         })()}
