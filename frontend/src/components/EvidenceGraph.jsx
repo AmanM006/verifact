@@ -85,8 +85,12 @@ const NODE_CONFIG = {
 };
 
 function NodeShape({ node, pos, selected, onClick }) {
-  const cfg = NODE_CONFIG[node.type] || NODE_CONFIG.evidence;
-  const lines = (node.label || node.id).split('\n');
+  const typeKey = node.type || node.node_type || 'evidence';
+  const cfg = NODE_CONFIG[typeKey] || NODE_CONFIG.evidence;
+  const lines = (node.label || node.id || '').split('\n');
+
+  const posX = typeof pos?.x === 'number' && !isNaN(pos.x) ? pos.x : 100;
+  const posY = typeof pos?.y === 'number' && !isNaN(pos.y) ? pos.y : 100;
 
   return (
     <g
@@ -100,8 +104,8 @@ function NodeShape({ node, pos, selected, onClick }) {
       {/* Node selection indicator ring */}
       {selected && (
         <rect
-          x={pos.x - 48}
-          y={pos.y - 30}
+          x={posX - 48}
+          y={posY - 30}
           width="96"
           height="60"
           rx="8"
@@ -113,8 +117,8 @@ function NodeShape({ node, pos, selected, onClick }) {
 
       {/* Node Box */}
       <rect
-        x={pos.x - 44}
-        y={pos.y - 26}
+        x={posX - 44}
+        y={posY - 26}
         width="88"
         height="52"
         rx="6"
@@ -125,16 +129,16 @@ function NodeShape({ node, pos, selected, onClick }) {
 
       {/* Type badge on top border */}
       <rect
-        x={pos.x - 44}
-        y={pos.y - 26}
+        x={posX - 44}
+        y={posY - 26}
         width="88"
         height="14"
         rx="5"
         fill={`${cfg.color}25`}
       />
       <text
-        x={pos.x}
-        y={pos.y - 16}
+        x={posX}
+        y={posY - 16}
         textAnchor="middle"
         fill={cfg.color}
         fontSize="8"
@@ -146,25 +150,25 @@ function NodeShape({ node, pos, selected, onClick }) {
 
       {/* Node text content */}
       <text
-        x={pos.x}
-        y={pos.y + 4}
+        x={posX}
+        y={posY + 4}
         textAnchor="middle"
         fill="#ededed"
         fontSize="11"
         fontWeight="600"
       >
-        {lines[0]}
+        {lines[0] ? (lines[0].length > 14 ? lines[0].slice(0, 12) + '...' : lines[0]) : node.id}
       </text>
       {lines[1] && (
         <text
-          x={pos.x}
-          y={pos.y + 17}
+          x={posX}
+          y={posY + 17}
           textAnchor="middle"
           fill="#a1a1aa"
           fontSize="10"
           fontFamily="ui-monospace, monospace"
         >
-          {lines[1]}
+          {lines[1].length > 14 ? lines[1].slice(0, 12) + '...' : lines[1]}
         </text>
       )}
     </g>
@@ -175,11 +179,12 @@ function Edge({ edge, positions }) {
   const src = positions[edge.source];
   const tgt = positions[edge.target];
   if (!src || !tgt) return null;
+  if (typeof src.x !== 'number' || typeof src.y !== 'number' || typeof tgt.x !== 'number' || typeof tgt.y !== 'number') return null;
 
   const dx = tgt.x - src.x;
   const dy = tgt.y - src.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist === 0) return null;
+  if (dist === 0 || isNaN(dist)) return null;
 
   const x1 = src.x + (dx / dist) * 44;
   const y1 = src.y + (dy / dist) * 26;
@@ -243,8 +248,10 @@ function Edge({ edge, positions }) {
 // ─── Detail Drawer ────────────────────────────────────────────────────────────
 
 function NodeDetail({ node, data, onClose }) {
-  const claim = data?.claims?.find((c) => c.claim_id === node.id);
-  const cfg = NODE_CONFIG[node.type] || NODE_CONFIG.evidence;
+  const claim = data?.claims?.find((c) => c.claim_id === node.id || c.id === node.id);
+  const typeKey = node.type || node.node_type || 'evidence';
+  const cfg = NODE_CONFIG[typeKey] || NODE_CONFIG.evidence;
+  const confidenceVal = typeof node.confidence === 'number' ? node.confidence : 0.95;
 
   return (
     <div
@@ -304,14 +311,14 @@ function NodeDetail({ node, data, onClose }) {
           <div style={{ flex: 1, background: '#18181b', borderRadius: '3px', height: '6px', overflow: 'hidden' }}>
             <div
               style={{
-                width: `${node.confidence * 100}%`,
+                width: `${confidenceVal * 100}%`,
                 height: '100%',
                 background: cfg.color,
               }}
             />
           </div>
           <span style={{ fontSize: '12px', color: '#ededed', fontFamily: 'ui-monospace, monospace', fontWeight: 600 }}>
-            {Math.round(node.confidence * 100)}%
+            {Math.round(confidenceVal * 100)}%
           </span>
         </div>
       </div>
