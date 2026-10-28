@@ -1,7 +1,7 @@
 export const MOCK_SCENARIOS = [
   {
     id: "procurement_fraud",
-    title: "Silent Procurement Fraud",
+    title: "Apex Supplies Procurement Fraud",
     description: "A $94,750 disbursement went to an unverified vendor IBAN. CFO approval references missing email thread #4471. Invoice address mismatches SEC EDGAR records.",
     tags: ["Track 02", "Explain Why"],
     impact: "$52,750 leaked",
