@@ -45,19 +45,35 @@ export default function InvestigationStatus({ data }) {
         )}
       </div>
 
-      {/* Summary Narrative */}
+      {/* Summary Narrative with clean Markdown stripping & styling */}
       <div
         style={{
           background: '#121215',
           border: '1px solid #18181b',
           borderRadius: '6px',
           padding: '12px',
-          fontSize: '12.5px',
+          fontSize: '12px',
           color: '#d4d4d8',
-          lineHeight: '1.55',
+          lineHeight: '1.6',
         }}
       >
-        {data.summary}
+        {(() => {
+          if (!data.summary) return null;
+          // Strip leading markdown headers and format paragraphs cleanly
+          const cleanText = data.summary
+            .replace(/^#+\s+/gm, '')
+            .replace(/\*\*(.*?)\*\*/g, '');
+          const paragraphs = cleanText.split(/\n+/).filter(Boolean);
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {paragraphs.map((p, idx) => (
+                <p key={idx} style={{ margin: 0 }}>
+                  {p}
+                </p>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* KPIs Grid */}
