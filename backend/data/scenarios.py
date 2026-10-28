@@ -8,7 +8,7 @@ from typing import Any
 SCENARIOS: list[dict[str, Any]] = [
     {
         "id": "procurement_fraud",
-        "title": "Silent Procurement Fraud",
+        "title": "Apex Supplies Procurement Fraud",
         "subtitle": "IBAN Swap + Social Engineering (Track 01 + 02)",
         "description": (
             "A $94,750 disbursement went to a vendor IBAN that was never formally authorized. "
