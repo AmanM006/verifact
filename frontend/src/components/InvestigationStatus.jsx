@@ -210,25 +210,28 @@ export default function InvestigationStatus({ data }) {
           Identified Root Causes
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {data.root_causes?.map((rc, i) => (
-            <div
-              key={i}
-              style={{
-                background: '#121215',
-                borderLeft: '2px solid #a855f7',
-                borderTop: '1px solid #18181b',
-                borderRight: '1px solid #18181b',
-                borderBottom: '1px solid #18181b',
-                borderRadius: '0 4px 4px 0',
-                padding: '8px 10px',
-                fontSize: '11.5px',
-                color: '#e4e4e7',
-                lineHeight: '1.45',
-              }}
-            >
-              {rc}
-            </div>
-          ))}
+          {data.root_causes?.map((rc, i) => {
+            const text = typeof rc === 'string' ? rc : (rc?.description || rc?.label || rc?.node_id || JSON.stringify(rc));
+            return (
+              <div
+                key={i}
+                style={{
+                  background: '#121215',
+                  borderLeft: '2px solid #a855f7',
+                  borderTop: '1px solid #18181b',
+                  borderRight: '1px solid #18181b',
+                  borderBottom: '1px solid #18181b',
+                  borderRadius: '0 4px 4px 0',
+                  padding: '8px 10px',
+                  fontSize: '11.5px',
+                  color: '#e4e4e7',
+                  lineHeight: '1.45',
+                }}
+              >
+                {text}
+              </div>
+            );
+          })}
         </div>
       </div>
 
